@@ -14,6 +14,8 @@ Images are processed locally through the React + Node application stack. The bac
 
 The system does not store uploaded images by default.
 
+The local Python environment used for apparent-age estimation is a setup dependency, not part of the committed repository. It should be recreated from the checked-in requirements file rather than committed to Git.
+
 ## No Identity Recognition
 
 The face stack is used only for landmark-driven region placement and visual measurement. The application does not identify, recognize, compare, or verify people.

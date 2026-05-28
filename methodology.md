@@ -52,6 +52,9 @@ DeepFace was retained for apparent age because:
 - it already worked reasonably in earlier prototype iterations
 - it provides a stronger age-estimation path than the lightweight JavaScript fallback we tried
 - it can be isolated to one helper script while keeping the main application in Node
+- it allows the repository to stay clean while the age runtime is recreated locally from `server/requirements-age.txt`
+
+In practice, this helper is pinned to a Python 3.11 environment because the TensorFlow dependency behind DeepFace is not reliably available on newer Python runtimes in this setup.
 
 Only age estimation is used. No emotion, gender, or identity tasks are enabled.
 
@@ -147,6 +150,8 @@ That helper:
 - returns only apparent age
 
 This keeps the output narrow and avoids enabling unrelated or ethically sensitive inference tasks.
+
+Operationally, the Python runtime for this helper is not committed to Git. Reproducibility comes from the checked-in dependency file `server/requirements-age.txt`. If that helper environment is not installed on a machine, the age module should fail gracefully and return `Not assessed`.
 
 ## 11. Optional Earlobe Crease-Like Visibility
 

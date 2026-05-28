@@ -82,11 +82,14 @@ This keeps the UI simple while preserving enough structure for later API wrappin
 
 ## Setup
 
-Requirements:
+### Prerequisites
 
 - Node.js 20+
-- Python virtual environment at `.venv`
-- DeepFace installed inside `.venv`
+- npm 10+
+- Python 3.11
+- A local Python virtual environment at `.venv` for the age helper
+
+### JavaScript dependencies
 
 Install frontend and backend JavaScript dependencies:
 
@@ -94,7 +97,56 @@ Install frontend and backend JavaScript dependencies:
 npm install
 ```
 
+### Python age-helper dependencies
+
+Create the local Python environment used by the apparent-age helper:
+
+```bash
+py -3.11 -m venv .venv
+```
+
+Windows PowerShell:
+
+```bash
+.venv\Scripts\activate
+pip install -r server/requirements-age.txt
+```
+
+macOS/Linux:
+
+```bash
+source .venv/bin/activate
+pip install -r server/requirements-age.txt
+```
+
+The checked-in Python dependency file is:
+
+- `server/requirements-age.txt`
+  - `deepface==0.0.100`
+  - `tensorflow==2.19.0`
+  - `tf-keras==2.19.0`
+  - `opencv-python`
+  - `numpy<2`
+
+Notes:
+
+- `.venv/` is intentionally ignored by Git and should not be committed.
+- The repo contains the DeepFace integration code and dependency file, not the installed environment itself.
+- If the Python helper dependencies are missing, the main app still runs, but the apparent-age module will return `Not assessed`.
+- If `pip install -r server/requirements-age.txt` says it cannot find `tensorflow`, the virtual environment is almost certainly using the wrong Python version. Recreate it with Python 3.11.
+
 ## Run
+
+From a clean clone, the usual sequence is:
+
+```bash
+npm install
+py -3.11 -m venv .venv
+.venv\Scripts\activate
+pip install -r server/requirements-age.txt
+npm run build
+npm run dev
+```
 
 ```bash
 npm run dev
@@ -104,12 +156,6 @@ This starts:
 
 - React UI at `http://127.0.0.1:5173`
 - Node API at `http://127.0.0.1:3001`
-
-## Build
-
-```bash
-npm run build
-```
 
 ## Downloadable Outputs
 
@@ -130,6 +176,8 @@ Neither export includes raw image data.
   - main visual analysis pipeline
 - `server/deepface_age.py`
   - local DeepFace age helper
+- `server/requirements-age.txt`
+  - reproducible Python dependencies for the age helper
 - `sample_outputs/`
   - sample structured output
 - `ethics_and_limitations.md`
@@ -141,6 +189,7 @@ Neither export includes raw image data.
 
 - Landmark-dependent results can drift with pose, blur, occlusion, glasses, shadows, expression, and image compression.
 - Apparent age is a model estimate, not factual or biological age.
+- A fresh clone needs the local Python age-helper environment installed or apparent age will return `Not assessed`.
 - Earlobe analysis only makes sense for side-view or close-up ear images.
 - The prototype is not clinically validated.
 - Confidence and reliability are heuristic, not calibration-certified.
