@@ -1,0 +1,39 @@
+{
+  "app": {
+    "name": "Face AI Prototype",
+    "version": "1.1.0-node-react",
+    "generatedAt": "2026-05-27T00:00:00.000Z"
+  },
+  "disclaimer": "This prototype is not a medical device, does not provide medical advice, and should not be used for clinical decision-making.",
+  "imageQuality": {
+    "indicator": "Image quality",
+    "result": "Good",
+    "score": 0.91,
+    "confidence": "High",
+    "reliable": true,
+    "explanation": "The image has enough focus, brightness, and contrast for prototype visual analysis.",
+    "meaning": "Good means the image is likely usable for visual measurements in this prototype.",
+    "limitations": "This quality score is a computer-vision usability check, not a judgment about the person or the image content.",
+    "metrics": {}
+  },
+  "face": {
+    "indicator": "Face detection and landmarks",
+    "result": "Face detected",
+    "score": 0.82,
+    "confidence": "High",
+    "reliable": true,
+    "detected": true,
+    "landmarks": [],
+    "faceBox": null,
+    "explanation": "A single face was detected and facial landmarks were extracted for visual indicator analysis.",
+    "meaning": "Face detected means the app found one face and can use landmark geometry. It does not identify or recognize the person.",
+    "limitations": "Lighting, shadows, pose, facial expression, camera quality, image compression, glasses, hair, makeup, and landmark placement may affect this non-diagnostic visual observation."
+  },
+  "indicators": [],
+  "overallNotes": [
+    "This report is non-diagnostic.",
+    "Low confidence results should not be interpreted as reliable measurements.",
+    "Image quality, pose, lighting, glasses, shadows, and region visibility affect visual analysis.",
+    "No uploaded image data is included in exported reports."
+  ]
+}
