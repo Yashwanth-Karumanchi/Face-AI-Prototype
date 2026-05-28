@@ -9,6 +9,7 @@ type Props = {
 export function ResultPanel({ result }: Props) {
   const statusClass = result.reliable ? "good" : result.confidence === "Medium" ? "warn" : "low";
   const Icon = result.reliable ? CheckCircle2 : result.confidence === "Medium" ? Info : AlertTriangle;
+  // Hide null metrics so the panel emphasizes the measurements that were actually produced for this image.
   const visibleMetrics = Object.entries(result.metrics ?? {}).filter(([, value]) => value !== null && value !== undefined);
 
   return (

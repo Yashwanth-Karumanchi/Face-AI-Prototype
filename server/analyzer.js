@@ -45,21 +45,27 @@ export async function analyzeReport({ human, faceBuffer, leftEarBuffer, rightEar
   const faceImage = await decodeImage(faceBuffer);
   const imageQuality = assessImageQuality(faceImage);
   const face = await detectFace(human, faceImage);
-  const indicators = [
+  // The geometry and region-scoring modules are synchronous, while age and ear analysis can run in parallel.
+  const baseIndicators = [
     analyzeFacialGeometry(face),
     analyzeFacialFeatureDetails(face),
     analyzeUnderEye(faceImage, face, imageQuality.reliable),
     analyzeGlabella(faceImage, face, imageQuality.reliable),
-    await estimateApparentAge(human, faceImage, face, actualAge),
-    await analyzeEar(leftEarBuffer, "left"),
-    await analyzeEar(rightEarBuffer, "right"),
   ];
+  const [ageIndicator, leftEarIndicator, rightEarIndicator, underEyeOverlay, glabellaOverlay] = await Promise.all([
+    estimateApparentAge(faceImage, face, actualAge),
+    analyzeEar(leftEarBuffer, "left"),
+    analyzeEar(rightEarBuffer, "right"),
+    face.detected ? drawRegionOverlay(faceImage, underEyeRects(face).flatMap((pair) => [pair.under, pair.cheek]), "under-eye / cheek") : Promise.resolve(null),
+    face.detected ? drawRegionOverlay(faceImage, [glabellaRect(face)], "glabella region") : Promise.resolve(null),
+  ]);
+  const indicators = [...baseIndicators, ageIndicator, leftEarIndicator, rightEarIndicator];
 
   return {
     report: {
       app: {
         name: "Face AI Prototype",
-        version: "1.1.0-node-react",
+        version: "1.1.0",
         generatedAt: new Date().toISOString(),
       },
       disclaimer: DISCLAIMER,
@@ -74,8 +80,8 @@ export async function analyzeReport({ human, faceBuffer, leftEarBuffer, rightEar
       ],
     },
     overlays: {
-      underEye: face.detected ? await drawRegionOverlay(faceImage, underEyeRects(face).flatMap((pair) => [pair.under, pair.cheek]), "under-eye / cheek") : null,
-      glabella: face.detected ? await drawRegionOverlay(faceImage, [glabellaRect(face)], "glabella region") : null,
+      underEye: underEyeOverlay,
+      glabella: glabellaOverlay,
     },
   };
 }
@@ -188,6 +194,7 @@ async function detectFace(human, image) {
     const faceArea = (box.width * box.height) / (image.width * image.height);
     const centerOffset = Math.abs(box.x + box.width / 2 - image.width / 2) / image.width;
     const suitable = mesh.length >= 468 && faceArea > 0.05 && faceArea < 0.78;
+    // Persist only the coordinates we need downstream so the returned report stays compact and serializable.
     return {
       indicator: "Face detection and landmarks",
       result: suitable ? "Face detected" : "Face detected with framing limitations",
@@ -423,7 +430,7 @@ function glabellaRect(face) {
   return { x: (left.x + right.x) / 2 - width / 2, y: top.y + height * 0.1, width, height, color: "#ffb84d" };
 }
 
-async function estimateApparentAge(human, image, face, actualAge) {
+async function estimateApparentAge(image, face, actualAge) {
   if (!face.detected || !face.faceBox) {
     return indicator({
       indicator: "Apparent face age estimate",
@@ -485,6 +492,7 @@ async function estimateAgeWithDeepFace(faceCropBuffer) {
   });
 
   return new Promise((resolve, reject) => {
+    // Age estimation stays in a tiny Python sidecar so the main API can remain Node-native.
     const child = spawn(".\\.venv\\Scripts\\python.exe", ["server\\deepface_age.py"], {
       cwd: process.cwd(),
       stdio: ["pipe", "pipe", "pipe"],
@@ -536,6 +544,7 @@ async function analyzeEar(buffer, side) {
     });
   }
   const image = await decodeImage(buffer);
+  // The current ear module assumes a close-up/side-view capture and searches the central/lower band conservatively.
   const r = { x: image.width * 0.15, y: image.height * 0.2, width: image.width * 0.7, height: image.height * 0.75 };
   const values = [];
   for (let y = r.y; y < r.y + r.height; y += 3) for (let x = r.x; x < r.x + r.width; x += 3) values.push(grayAt(image, x, y));
@@ -568,6 +577,7 @@ async function analyzeEar(buffer, side) {
 
 function bestDiagonalLine(image, rect) {
   let best = { score: 0, edge: 0, angle: null };
+  // Sweep a small family of plausible crease angles instead of hard-coding one line hypothesis.
   for (const angle of [-65, -55, -45, -35, -25, 25, 35, 45, 55, 65]) {
     for (const yRatio of [0.56, 0.62, 0.68, 0.74, 0.8]) {
       const rad = (angle * Math.PI) / 180;

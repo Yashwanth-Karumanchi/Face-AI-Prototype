@@ -19,6 +19,7 @@ export function CameraCapture({ label, onCapture }: Props) {
   async function start() {
     setError(null);
     try {
+      // Ask for a moderate camera stream up front so live capture feels responsive on average laptops.
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false,
@@ -40,6 +41,7 @@ export function CameraCapture({ label, onCapture }: Props) {
   async function capture() {
     const video = videoRef.current;
     if (!video || video.videoWidth === 0) return;
+    // Capture the exact frame shown to the user without keeping the camera stream around in memory.
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;

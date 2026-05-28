@@ -1,5 +1,5 @@
 export const APP_NAME = "Face AI Prototype";
-export const APP_VERSION = "1.1.0-node-react";
+export const APP_VERSION = "1.1.0";
 
 export const DISCLAIMER =
   "This prototype is not a medical device, does not provide medical advice, and should not be used for clinical decision-making.";

@@ -1,5 +1,5 @@
 import { Download, FileText, Play, ShieldCheck, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { APP_NAME, CONSENT_TEXT, DISCLAIMER } from "./config";
 import { CameraCapture } from "./components/CameraCapture";
 import { FileInput } from "./components/FileInput";
@@ -7,7 +7,6 @@ import { ReportTable } from "./components/ReportTable";
 import { ResultPanel } from "./components/ResultPanel";
 import { pdfBlob, reportBlob } from "./report";
 import type { FullReport } from "./types";
-import { fileToImage, imageToInput } from "./utils/image";
 
 type ImageSlot = {
   blob: Blob;
@@ -15,14 +14,16 @@ type ImageSlot = {
   source: string;
 };
 
-async function makeSlot(file: File | Blob, source: string): Promise<ImageSlot> {
-  const image = await fileToImage(file);
-  const input = imageToInput(image);
+function makeSlot(file: File | Blob, source: string): ImageSlot {
   return {
     blob: file,
-    preview: input.canvas.toDataURL("image/png"),
+    preview: URL.createObjectURL(file),
     source,
   };
+}
+
+function revokePreview(slot: ImageSlot | null) {
+  if (slot) URL.revokeObjectURL(slot.preview);
 }
 
 type ApiArtifacts = {
@@ -41,18 +42,55 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [artifacts, setArtifacts] = useState<ApiArtifacts | null>(null);
 
+  useEffect(() => {
+    return () => {
+      revokePreview(faceImage);
+      revokePreview(leftEar);
+      revokePreview(rightEar);
+    };
+  }, [faceImage, leftEar, rightEar]);
+
   const canAnalyze = useMemo(() => {
     if (!consent || !faceImage || running) return false;
     if (includeEars && (!leftEar || !rightEar)) return false;
     return true;
   }, [consent, faceImage, includeEars, leftEar, rightEar, running]);
 
-  async function setSlot(kind: "face" | "leftEar" | "rightEar", file: File | Blob, source: string) {
+  function replaceSlot(nextKind: "face" | "leftEar" | "rightEar", nextSlot: ImageSlot) {
+    // Revoke the previous object URL when a slot is replaced so previews do not leak memory.
+    if (nextKind === "face") {
+      revokePreview(faceImage);
+      setFaceImage(nextSlot);
+    }
+    if (nextKind === "leftEar") {
+      revokePreview(leftEar);
+      setLeftEar(nextSlot);
+    }
+    if (nextKind === "rightEar") {
+      revokePreview(rightEar);
+      setRightEar(nextSlot);
+    }
+  }
+
+  function clearSlot(kind: "face" | "leftEar" | "rightEar") {
+    if (kind === "face") {
+      revokePreview(faceImage);
+      setFaceImage(null);
+    }
+    if (kind === "leftEar") {
+      revokePreview(leftEar);
+      setLeftEar(null);
+    }
+    if (kind === "rightEar") {
+      revokePreview(rightEar);
+      setRightEar(null);
+    }
+  }
+
+  function setSlot(kind: "face" | "leftEar" | "rightEar", file: File | Blob, source: string) {
     setError(null);
-    const slot = await makeSlot(file, source);
-    if (kind === "face") setFaceImage(slot);
-    if (kind === "leftEar") setLeftEar(slot);
-    if (kind === "rightEar") setRightEar(slot);
+    const slot = makeSlot(file, source);
+    replaceSlot(kind, slot);
     setArtifacts(null);
   }
 
@@ -62,6 +100,7 @@ export default function App() {
     setError(null);
     try {
       const parsedAge = actualAge.trim() ? Number(actualAge) : undefined;
+      // Keep the API payload narrow: only the current face image, optional age, and optional ear images.
       const formData = new FormData();
       formData.append("faceImage", faceImage.blob, "face-image.png");
       if (Number.isFinite(parsedAge)) formData.append("actualAge", String(parsedAge));
@@ -138,7 +177,7 @@ export default function App() {
             />
             <CameraCapture label="Live face capture" onCapture={(blob) => void setSlot("face", blob, "camera")} />
             {faceImage ? (
-              <ImagePreview title={`Face image (${faceImage.source})`} src={faceImage.preview} onClear={() => setFaceImage(null)} />
+              <ImagePreview title={`Face image (${faceImage.source})`} src={faceImage.preview} onClear={() => clearSlot("face")} />
             ) : null}
           </div>
 
@@ -169,7 +208,7 @@ export default function App() {
                   onFile={(file) => void setSlot("leftEar", file, "upload")}
                 />
                 <CameraCapture label="Live left ear capture" onCapture={(blob) => void setSlot("leftEar", blob, "camera")} />
-                {leftEar ? <ImagePreview title={`Left ear (${leftEar.source})`} src={leftEar.preview} onClear={() => setLeftEar(null)} /> : null}
+                {leftEar ? <ImagePreview title={`Left ear (${leftEar.source})`} src={leftEar.preview} onClear={() => clearSlot("leftEar")} /> : null}
 
                 <FileInput
                   label="Upload right ear image"
@@ -177,7 +216,7 @@ export default function App() {
                   onFile={(file) => void setSlot("rightEar", file, "upload")}
                 />
                 <CameraCapture label="Live right ear capture" onCapture={(blob) => void setSlot("rightEar", blob, "camera")} />
-                {rightEar ? <ImagePreview title={`Right ear (${rightEar.source})`} src={rightEar.preview} onClear={() => setRightEar(null)} /> : null}
+                {rightEar ? <ImagePreview title={`Right ear (${rightEar.source})`} src={rightEar.preview} onClear={() => clearSlot("rightEar")} /> : null}
               </>
             ) : null}
           </div>

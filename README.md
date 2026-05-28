@@ -148,10 +148,6 @@ npm run build
 npm run dev
 ```
 
-```bash
-npm run dev
-```
-
 This starts:
 
 - React UI at `http://127.0.0.1:5173`

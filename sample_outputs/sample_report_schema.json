@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "Face AI Prototype",
-    "version": "1.1.0-node-react",
+    "version": "1.1.0",
     "generatedAt": "2026-05-27T00:00:00.000Z"
   },
   "disclaimer": "This prototype is not a medical device, does not provide medical advice, and should not be used for clinical decision-making.",
